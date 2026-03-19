@@ -16,4 +16,6 @@ Simple browser app that shows hourly weather
  opening `index.html` directly in browser, but some browsers might restrict API requests from `file://` pages.
 
 ![Demo screenshot](weatherBug.jpg)
+https://blky.github.io/weatherBug/
+
  
