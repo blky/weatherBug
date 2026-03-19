@@ -1,11 +1,6 @@
 # Hourly Weather Monitor
 
-Simple browser app that shows hourly weather for:
-
-- Amsterdam
-- London
-- Chengdu
-- Union City, California
+Simple browser app that shows hourly weather 
 
 ## Included measurements
 
