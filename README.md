@@ -13,6 +13,6 @@ Simple browser app that shows hourly weather
 
 ## Run it
 
- opening `index.html` directly in browser, but some browsers restrict API requests from `file://` pages.
+ opening `index.html` directly in browser, but some browsers might restrict API requests from `file://` pages.
 
  
