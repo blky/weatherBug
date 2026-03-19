@@ -13,12 +13,6 @@ Simple browser app that shows hourly weather
 
 ## Run it
 
-Best option: run the included PowerShell server, then open `http://localhost:8080`.
-
-1. Open PowerShell in `C:\codex\weatherBug`
-2. Run `.\serve.ps1`
-3. Open `http://localhost:8080`
-
-You can still try opening `index.html` directly, but some browsers restrict API requests from `file://` pages.
+ opening `index.html` directly in browser, but some browsers restrict API requests from `file://` pages.
 
  
