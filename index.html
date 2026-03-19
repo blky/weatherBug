@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Weather snapshots</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Source+Sans+3:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="hero">
+        <p class="eyebrow">Hourly climate tracker</p>
+        <h1>Weather snapshots</h1>
+        <p class="hero-copy">
+          Track hourly temperature in Celsius and Fahrenheit, humidity, dew
+          point, rain, and wind conditions across your selected cities.
+        </p>
+        <div class="hero-actions">
+          <button id="refreshButton" class="primary-button" type="button">
+            Refresh weather
+          </button>
+          <p id="statusText" class="status-text" aria-live="polite">
+            Loading latest forecast...
+          </p>
+        </div>
+      </section>
+
+      <section class="summary-strip" aria-label="Tracked metrics">
+        <article>
+          <span class="summary-label">Cities</span>
+          <strong id="cityCount">4 monitored</strong>
+        </article>
+        <article>
+          <span class="summary-label">Cadence</span>
+          <strong>Every 2 hours</strong>
+        </article>
+        <article>
+          <span class="summary-label">Measures</span>
+          <strong>Temp, rain, humidity, dew, wind</strong>
+        </article>
+      </section>
+
+      <section class="controls-panel" aria-label="City controls">
+        <form id="cityForm" class="city-form">
+          <label class="city-form-label" for="cityInput">Add a city</label>
+          <div class="city-form-row">
+            <input
+              id="cityInput"
+              class="city-input"
+              type="text"
+              placeholder="Try Paris, Tokyo, or San Francisco"
+              autocomplete="off"
+              list="citySuggestions"
+            />
+            <button id="addCityButton" class="primary-button" type="submit">
+              Add city
+            </button>
+          </div>
+          <datalist id="citySuggestions"></datalist>
+          <p id="cityFormMessage" class="form-message" aria-live="polite">
+            Default cities are loaded below. Start typing a city and pick a hint like `Singapore, Singapore` or `San Jose, California, United States`.
+          </p>
+        </form>
+      </section>
+
+      <section class="tabs-shell" aria-label="City weather tabs">
+        <div id="tabsContainer" class="tabs-row" role="tablist" aria-label="Cities"></div>
+        <section id="cardsContainer" class="cards-grid" aria-live="polite"></section>
+      </section>
+    </main>
+
+    <template id="cityCardTemplate">
+      <article class="city-card">
+        <div class="card-header">
+          <div>
+            <p class="city-region"></p>
+            <h2 class="city-name"></h2>
+          </div>
+          <div class="city-badge"></div>
+        </div>
+        <p class="updated-time"></p>
+        <div class="date-switcher" aria-label="Date navigation">
+          <div class="date-nav"></div>
+          <div class="date-actions">
+            <p class="date-label"></p>
+            <button class="view-toggle" type="button">Show 24 hours</button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Local Time</th>
+                <th>Temp C</th>
+                <th>Temp F</th>
+                <th>Humidity</th>
+                <th>Dew Point</th>
+                <th>Rain</th>
+                <th>Condition</th>
+                <th>Wind</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </article>
+    </template>
+
+    <script src="./app.js" defer></script>
+  </body>
+</html>
