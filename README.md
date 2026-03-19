@@ -26,7 +26,4 @@ Best option: run the included PowerShell server, then open `http://localhost:808
 
 You can still try opening `index.html` directly, but some browsers restrict API requests from `file://` pages.
 
-## Notes
-
-- The dashboard shows the next 24 hourly forecast entries for each city.
-- "Unity City in California" was implemented as **Union City, California**, which is likely the intended location name.
+ 
