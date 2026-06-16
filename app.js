@@ -8,13 +8,6 @@
       timezone: "Europe/Amsterdam",
     },
     {
-      name: "London",
-      region: "England, United Kingdom",
-      latitude: 51.5072,
-      longitude: -0.1276,
-      timezone: "Europe/London",
-    },
-    {
       name: "Chengdu",
       region: "Sichuan, China",
       latitude: 30.5728,
