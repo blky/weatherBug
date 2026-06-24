@@ -76,7 +76,7 @@
   var cityCardTemplate = document.querySelector("#cityCardTemplate");
   var activeCityKey = "";
   var activeDateKey = "";
-  var activeView = "city";
+  var activeView = "details";
   var showFullDay = false;
   var hintTimer = 0;
   var latestHintQuery = "";
@@ -1027,7 +1027,7 @@
     detailsButton.setAttribute("role", "tab");
     detailsButton.setAttribute("aria-selected", activeView === "details" ? "true" : "false");
     detailsButton.innerHTML =
-      '<span class="details-tab-icon" aria-hidden="true">&#9638;</span><span>Details</span>';
+      '<span class="details-tab-icon" aria-hidden="true">&#9638;</span><span>Comparison</span>';
     detailsButton.addEventListener("click", function () {
       activeView = "details";
       renderCityCards(cityWeatherList);
