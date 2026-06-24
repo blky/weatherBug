@@ -1,4 +1,5 @@
 (function () {
+  var CITY_STORAGE_KEY = "weather-snapshots-cities";
   var defaultCities = [
     {
       name: "Amsterdam",
@@ -15,21 +16,21 @@
       timezone: "Asia/Shanghai",
     },
     {
-      name: "Union City",
-      region: "California, United States",
-      latitude: 37.5934,
-      longitude: -122.0438,
-      timezone: "America/Los_Angeles",
+      name: "Helsinki",
+      region: "Uusimaa, Finland",
+      latitude: 60.1699,
+      longitude: 24.9384,
+      timezone: "Europe/Helsinki",
     },
     {
-      name: "Los Angeles",
-      region: "California, United States",
-      latitude: 34.0522,
-      longitude: -118.2437,
-      timezone: "America/Los_Angeles",
+      name: "Stockholm",
+      region: "Stockholm County, Sweden",
+      latitude: 59.3293,
+      longitude: 18.0686,
+      timezone: "Europe/Stockholm",
     },
   ];
-  var trackedCities = defaultCities.slice();
+  var trackedCities = loadSavedCities();
 
   var weatherCodeMap = {
     0: "Clear",
@@ -79,6 +80,44 @@
   var hintTimer = 0;
   var latestHintQuery = "";
   var preferredCityIndex = buildPreferredCityIndex(defaultCities);
+
+  function isValidCity(city) {
+    return (
+      city &&
+      typeof city.name === "string" &&
+      typeof city.region === "string" &&
+      typeof city.latitude === "number" &&
+      typeof city.longitude === "number" &&
+      typeof city.timezone === "string"
+    );
+  }
+
+  function loadSavedCities() {
+    var savedCities;
+
+    try {
+      savedCities = JSON.parse(window.localStorage.getItem(CITY_STORAGE_KEY));
+      if (
+        Array.isArray(savedCities) &&
+        savedCities.length > 0 &&
+        savedCities.every(isValidCity)
+      ) {
+        return savedCities;
+      }
+    } catch (error) {
+      console.warn("Unable to load saved cities.", error);
+    }
+
+    return defaultCities.slice();
+  }
+
+  function saveCities() {
+    try {
+      window.localStorage.setItem(CITY_STORAGE_KEY, JSON.stringify(trackedCities));
+    } catch (error) {
+      console.warn("Unable to save cities.", error);
+    }
+  }
 
   function celsiusToFahrenheit(value) {
     return (value * 9) / 5 + 32;
@@ -215,7 +254,8 @@
     date = new Date(Date.UTC(parts[0], Number(parts[1]) - 1, parts[2], 12, 0, 0));
 
     return new Intl.DateTimeFormat("en-US", {
-      weekday: "long",
+      month: "short",
+      day: "numeric",
       timeZone: timezone,
     }).format(date);
   }
@@ -316,8 +356,8 @@
         "wind_direction_10m",
         "weather_code",
       ].join(","),
-      past_days: "2",
-      forecast_days: "7",
+      past_days: "1",
+      forecast_days: "15",
       timezone: city.timezone,
     });
 
@@ -732,6 +772,7 @@
     }
 
     updateCityCount();
+    saveCities();
     setFormMessage((removedCity ? removedCity.name : "City") + " removed from the dashboard.");
     loadWeather();
   }
@@ -776,7 +817,7 @@
       .then(function (responses) {
         renderCityCards(responses);
         statusText.textContent =
-          "Showing every-2-hour measurements by default, with optional 24-hour view, across the last 2 days and next 7 days for " +
+          "Showing every-2-hour measurements by default, with optional 24-hour view, from yesterday through the next 14 days for " +
           trackedCities.length +
           " cities.";
       })
@@ -812,6 +853,7 @@
     activeDateKey = "";
     expandedCityKey = "";
     updateCityCount();
+    saveCities();
     setFormMessage(city.name + " added. Loading weather now.");
     loadWeather();
   }
@@ -971,6 +1013,7 @@
     }
 
     updateCityCount();
+    saveCities();
     cityForm.addEventListener("submit", handleCitySubmit);
     cityInput.addEventListener("input", handleCityInput);
     refreshButton.addEventListener("click", loadWeather);
