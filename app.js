@@ -956,6 +956,19 @@
     var detailsButton;
     tabsContainer.innerHTML = "";
 
+    detailsButton = document.createElement("button");
+    detailsButton.type = "button";
+    detailsButton.className = "city-tab details-tab";
+    detailsButton.setAttribute("role", "tab");
+    detailsButton.setAttribute("aria-selected", activeView === "details" ? "true" : "false");
+    detailsButton.innerHTML =
+      '<span class="details-tab-icon" aria-hidden="true">&#9638;</span><span>Details</span>';
+    detailsButton.addEventListener("click", function () {
+      activeView = "details";
+      renderCityCards(cityWeatherList);
+    });
+    tabsContainer.appendChild(detailsButton);
+
     cityWeatherList.forEach(function (cityWeather) {
       var button = document.createElement("button");
       var content = document.createElement("span");
@@ -990,18 +1003,6 @@
       button.appendChild(content);
       tabsContainer.appendChild(button);
     });
-
-    detailsButton = document.createElement("button");
-    detailsButton.type = "button";
-    detailsButton.className = "city-tab details-tab";
-    detailsButton.setAttribute("role", "tab");
-    detailsButton.setAttribute("aria-selected", activeView === "details" ? "true" : "false");
-    detailsButton.textContent = "Details";
-    detailsButton.addEventListener("click", function () {
-      activeView = "details";
-      renderCityCards(cityWeatherList);
-    });
-    tabsContainer.appendChild(detailsButton);
   }
 
   function renderCityCards(cityWeatherList) {

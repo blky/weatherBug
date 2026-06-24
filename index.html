@@ -73,10 +73,18 @@
             Default cities are loaded below. Start typing a city and pick a hint like `Singapore, Singapore` or `San Jose, California, United States`.
           </p>
         </form>
+        <div class="city-selector">
+          <p class="city-selector-label">Selected cities</p>
+          <div
+            id="tabsContainer"
+            class="tabs-row"
+            role="tablist"
+            aria-label="Weather views and selected cities"
+          ></div>
+        </div>
       </section>
 
       <section class="tabs-shell" aria-label="City weather tabs">
-        <div id="tabsContainer" class="tabs-row" role="tablist" aria-label="Cities"></div>
         <section id="cardsContainer" class="cards-grid" aria-live="polite"></section>
       </section>
     </main>

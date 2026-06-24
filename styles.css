@@ -177,6 +177,8 @@ table {
 }
 
 .controls-panel {
+  display: grid;
+  gap: 18px;
   margin-bottom: 18px;
   background: var(--paper);
   border: 1px solid rgba(255, 255, 255, 0.75);
@@ -255,6 +257,22 @@ table {
   gap: 10px;
 }
 
+.city-selector {
+  display: grid;
+  gap: 10px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+
+.city-selector-label {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
 .city-tab {
   border: 1px solid rgba(21, 32, 51, 0.12);
   border-radius: 999px;
@@ -300,7 +318,26 @@ table {
 }
 
 .details-tab {
-  border-style: dashed;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 2px solid var(--accent);
+  background: rgba(15, 118, 110, 0.1);
+  color: var(--accent-strong);
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  box-shadow: 0 5px 14px rgba(15, 118, 110, 0.12);
+}
+
+.details-tab-icon {
+  font-size: 1.12em;
+  line-height: 1;
+}
+
+.details-tab[aria-selected="true"] {
+  box-shadow: 0 7px 18px rgba(15, 118, 110, 0.24);
 }
 
 .comparison-date-switcher .date-label {
@@ -802,19 +839,29 @@ tbody tr:last-child td {
   }
 
   .tabs-row {
-    overflow-x: auto;
-    flex-wrap: nowrap;
-    padding: 2px 0 6px;
-    scrollbar-width: thin;
-    overscroll-behavior-inline: contain;
-    scroll-snap-type: x proximity;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    overflow: visible;
+    padding: 2px 0;
   }
 
   .city-tab {
-    flex: 0 0 auto;
+    width: 100%;
     min-height: 44px;
     padding: 9px 13px;
-    scroll-snap-align: start;
+    text-align: center;
+  }
+
+  .city-tab-content {
+    justify-content: space-between;
+    width: 100%;
+  }
+
+  .details-tab {
+    grid-column: 1 / -1;
+    justify-content: center;
+    min-height: 50px;
+    font-size: 1.08rem;
   }
 
   .remove-city {
