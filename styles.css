@@ -382,24 +382,43 @@ table {
 
 .metric-condition {
   grid-column: 1 / -1;
+  padding: 12px 14px;
+}
+
+.metric-condition h3 {
+  margin-bottom: 10px;
 }
 
 .condition-comparison {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
+  gap: 8px;
 }
 
 .condition-comparison-item {
-  display: grid;
-  gap: 8px;
-  padding: 12px;
-  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 8px 10px;
+  border-radius: 12px;
   background: rgba(15, 118, 110, 0.06);
 }
 
 .condition-comparison-item strong {
   font-family: "Space Grotesk", sans-serif;
+  font-size: 0.9rem;
+}
+
+.condition-comparison-item .condition-cell {
+  gap: 5px;
+  font-size: 0.88rem;
+}
+
+.condition-comparison-item .condition-icon {
+  width: 22px;
+  height: 22px;
+  font-size: 0.8rem;
 }
 
 .card-header {
