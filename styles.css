@@ -764,18 +764,20 @@ tbody tr:last-child td {
   }
 
   .date-nav {
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    padding-bottom: 5px;
-    scrollbar-width: thin;
-    overscroll-behavior-inline: contain;
-    scroll-snap-type: x proximity;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 7px;
+    overflow: visible;
   }
 
   .date-chip {
-    flex: 0 0 auto;
+    width: 100%;
+    min-width: 0;
     min-height: 42px;
-    scroll-snap-align: start;
+    padding: 7px 5px;
+    border-radius: 12px;
+    font-size: 0.84rem;
+    white-space: nowrap;
   }
 
   .date-actions {
@@ -840,7 +842,8 @@ tbody tr:last-child td {
 
   .tabs-row {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: 1fr;
+    gap: 8px;
     overflow: visible;
     padding: 2px 0;
   }
@@ -858,7 +861,6 @@ tbody tr:last-child td {
   }
 
   .details-tab {
-    grid-column: 1 / -1;
     justify-content: center;
     min-height: 50px;
     font-size: 1.08rem;
@@ -922,6 +924,15 @@ tbody tr:last-child td {
 }
 
 @media (max-width: 420px) {
+  .date-nav {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .date-chip {
+    min-height: 40px;
+    font-size: 0.8rem;
+  }
+
   .summary-strip {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
