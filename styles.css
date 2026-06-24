@@ -299,6 +299,109 @@ table {
   background: rgba(255, 255, 255, 0.18);
 }
 
+.details-tab {
+  border-style: dashed;
+}
+
+.comparison-date-switcher .date-label {
+  text-align: left;
+}
+
+.comparison-charts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 18px;
+}
+
+.metric-chart {
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.52);
+}
+
+.metric-chart h3 {
+  margin: 0 0 16px;
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 1.05rem;
+}
+
+.metric-row {
+  display: grid;
+  grid-template-columns: minmax(85px, 0.8fr) minmax(110px, 1.5fr) minmax(130px, 1.2fr);
+  gap: 10px;
+  align-items: center;
+  margin-top: 11px;
+}
+
+.metric-city {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.metric-track {
+  height: 12px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(21, 32, 51, 0.08);
+}
+
+.metric-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--metric-color, var(--accent));
+}
+
+.metric-value {
+  color: var(--muted);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.metric-hot {
+  --metric-color: #dc2626;
+}
+
+.metric-cold {
+  --metric-color: #2563eb;
+}
+
+.metric-uv {
+  --metric-color: #d97706;
+}
+
+.metric-dew {
+  --metric-color: #0891b2;
+}
+
+.metric-humidity {
+  --metric-color: #0f766e;
+}
+
+.metric-condition {
+  grid-column: 1 / -1;
+}
+
+.condition-comparison {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 10px;
+}
+
+.condition-comparison-item {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 14px;
+  background: rgba(15, 118, 110, 0.06);
+}
+
+.condition-comparison-item strong {
+  font-family: "Space Grotesk", sans-serif;
+}
+
 .card-header {
   display: flex;
   justify-content: space-between;
@@ -532,6 +635,19 @@ tbody tr:last-child td {
   .date-actions {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .comparison-charts {
+    grid-template-columns: 1fr;
+  }
+
+  .metric-row {
+    grid-template-columns: 80px minmax(90px, 1fr);
+  }
+
+  .metric-value {
+    grid-column: 2;
+    white-space: normal;
   }
 
   .summary-strip {

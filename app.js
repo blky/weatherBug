@@ -76,6 +76,7 @@
   var cityCardTemplate = document.querySelector("#cityCardTemplate");
   var activeCityKey = "";
   var activeDateKey = "";
+  var activeView = "city";
   var showFullDay = false;
   var hintTimer = 0;
   var latestHintQuery = "";
@@ -352,6 +353,7 @@
         "relative_humidity_2m",
         "dew_point_2m",
         "rain",
+        "uv_index",
         "wind_speed_10m",
         "wind_direction_10m",
         "weather_code",
@@ -539,6 +541,7 @@
         humidity: payload.hourly.relative_humidity_2m[index],
         dewPoint: payload.hourly.dew_point_2m[index],
         rain: payload.hourly.rain[index],
+        uvIndex: payload.hourly.uv_index[index],
         wind:
           getWindDescriptor(windSpeed) +
           " " +
@@ -669,6 +672,9 @@
         row.rain.toFixed(1) +
         " mm</td>" +
         "<td>" +
+        row.uvIndex.toFixed(1) +
+        "</td>" +
+        "<td>" +
         '<span class="condition-cell"><span class="condition-icon" aria-hidden="true">' +
         row.conditionIcon +
         "</span><span>" +
@@ -684,9 +690,270 @@
     return card;
   }
 
+  function buildComparisonCard(cityWeatherList) {
+    var card = document.createElement("article");
+    var header = document.createElement("div");
+    var headingGroup = document.createElement("div");
+    var eyebrow = document.createElement("p");
+    var title = document.createElement("h2");
+    var dateSwitcher = document.createElement("div");
+    var dateNav = document.createElement("div");
+    var dateLabel = document.createElement("p");
+    var charts = document.createElement("div");
+    var referenceCity = cityWeatherList[0];
+    var selectedDateKey;
+    var citySummaries = [];
+    var metrics;
+
+    card.className = "city-card comparison-card";
+    header.className = "card-header";
+    eyebrow.className = "city-region";
+    eyebrow.textContent = "Selected cities";
+    title.className = "city-name";
+    title.textContent = "Weather comparison";
+    headingGroup.appendChild(eyebrow);
+    headingGroup.appendChild(title);
+    header.appendChild(headingGroup);
+    card.appendChild(header);
+
+    if (!referenceCity) {
+      return card;
+    }
+
+    selectedDateKey = getSelectedDateKey(referenceCity);
+    dateSwitcher.className = "date-switcher comparison-date-switcher";
+    dateNav.className = "date-nav";
+    dateLabel.className = "date-label";
+    dateLabel.textContent = formatDateLabel(selectedDateKey, referenceCity.timezone);
+
+    referenceCity.availableDateKeys.forEach(function (dateKey) {
+      var chip = document.createElement("button");
+      var className = "date-chip";
+
+      if (dateKey === selectedDateKey) {
+        className += " is-active";
+      }
+
+      if (dateKey === referenceCity.currentDateKey) {
+        className += " is-today";
+      }
+
+      chip.type = "button";
+      chip.className = className;
+      chip.textContent = formatWeekdayLabel(dateKey, referenceCity.timezone);
+      chip.addEventListener("click", function () {
+        activeDateKey = dateKey;
+        renderCityCards(lastRenderedWeatherList);
+      });
+      dateNav.appendChild(chip);
+    });
+
+    dateSwitcher.appendChild(dateNav);
+    dateSwitcher.appendChild(dateLabel);
+    card.appendChild(dateSwitcher);
+
+    cityWeatherList.forEach(function (cityWeather) {
+      var rowsForDate = cityWeather.rowsByDate[selectedDateKey] || [];
+      var highestTemperature;
+      var lowestTemperature;
+      var highestUv;
+      var highestDewPoint;
+      var highestHumidity;
+      var conditionCounts = {};
+      var dominantCondition;
+
+      if (rowsForDate.length === 0) {
+        return;
+      }
+
+      highestTemperature = rowsForDate.reduce(function (best, row) {
+        return row.temperatureC > best.temperatureC ? row : best;
+      });
+      lowestTemperature = rowsForDate.reduce(function (best, row) {
+        return row.temperatureC < best.temperatureC ? row : best;
+      });
+      highestUv = rowsForDate.reduce(function (best, row) {
+        return row.uvIndex > best.uvIndex ? row : best;
+      });
+      highestDewPoint = rowsForDate.reduce(function (best, row) {
+        return row.dewPoint > best.dewPoint ? row : best;
+      });
+      highestHumidity = rowsForDate.reduce(function (best, row) {
+        return row.humidity > best.humidity ? row : best;
+      });
+      rowsForDate.forEach(function (row) {
+        var key = row.condition;
+
+        if (!conditionCounts[key]) {
+          conditionCounts[key] = {
+            count: 0,
+            condition: row.condition,
+            conditionIcon: row.conditionIcon,
+          };
+        }
+
+        conditionCounts[key].count += 1;
+      });
+      dominantCondition = Object.keys(conditionCounts).reduce(function (best, key) {
+        var candidate = conditionCounts[key];
+        return !best || candidate.count > best.count ? candidate : best;
+      }, null);
+
+      citySummaries.push({
+        name: cityWeather.name,
+        highestTemperature: highestTemperature,
+        lowestTemperature: lowestTemperature,
+        highestUv: highestUv,
+        highestDewPoint: highestDewPoint,
+        highestHumidity: highestHumidity,
+        dominantCondition: dominantCondition,
+      });
+    });
+
+    metrics = [
+      {
+        key: "highestTemperature",
+        title: "Highest temperature",
+        className: "metric-hot",
+        value: function (row) {
+          return row.temperatureC;
+        },
+        label: function (row) {
+          return row.temperatureC.toFixed(1) + " C at " + row.hour;
+        },
+      },
+      {
+        key: "lowestTemperature",
+        title: "Lowest temperature",
+        className: "metric-cold",
+        value: function (row) {
+          return row.temperatureC;
+        },
+        label: function (row) {
+          return row.temperatureC.toFixed(1) + " C at " + row.hour;
+        },
+      },
+      {
+        key: "highestUv",
+        title: "Highest UV index",
+        className: "metric-uv",
+        value: function (row) {
+          return row.uvIndex;
+        },
+        label: function (row) {
+          return row.uvIndex.toFixed(1) + " at " + row.hour;
+        },
+      },
+      {
+        key: "highestDewPoint",
+        title: "Highest dew point",
+        className: "metric-dew",
+        value: function (row) {
+          return row.dewPoint;
+        },
+        label: function (row) {
+          return row.dewPoint.toFixed(1) + " C at " + row.hour;
+        },
+      },
+      {
+        key: "highestHumidity",
+        title: "Highest humidity",
+        className: "metric-humidity",
+        value: function (row) {
+          return row.humidity;
+        },
+        label: function (row) {
+          return row.humidity + "% at " + row.hour;
+        },
+      },
+    ];
+
+    charts.className = "comparison-charts";
+
+    (function addConditionComparison() {
+      var chart = document.createElement("section");
+      var chartTitle = document.createElement("h3");
+      var conditionGrid = document.createElement("div");
+
+      chart.className = "metric-chart metric-condition";
+      chartTitle.textContent = "Dominant condition";
+      conditionGrid.className = "condition-comparison";
+      chart.appendChild(chartTitle);
+
+      citySummaries.forEach(function (summary) {
+        var item = document.createElement("div");
+        var city = document.createElement("strong");
+        var condition = document.createElement("span");
+
+        item.className = "condition-comparison-item";
+        city.textContent = summary.name;
+        condition.className = "condition-cell";
+        condition.innerHTML =
+          '<span class="condition-icon" aria-hidden="true">' +
+          summary.dominantCondition.conditionIcon +
+          "</span><span>" +
+          summary.dominantCondition.condition +
+          "</span>";
+        item.appendChild(city);
+        item.appendChild(condition);
+        conditionGrid.appendChild(item);
+      });
+
+      chart.appendChild(conditionGrid);
+      charts.appendChild(chart);
+    })();
+
+    metrics.forEach(function (metric) {
+      var chart = document.createElement("section");
+      var chartTitle = document.createElement("h3");
+      var values = citySummaries.map(function (summary) {
+        return metric.value(summary[metric.key]);
+      });
+      var minimum = Math.min.apply(null, values);
+      var maximum = Math.max.apply(null, values);
+      var span = maximum - minimum;
+
+      chart.className = "metric-chart " + metric.className;
+      chartTitle.textContent = metric.title;
+      chart.appendChild(chartTitle);
+
+      citySummaries.forEach(function (summary) {
+        var row = document.createElement("div");
+        var city = document.createElement("strong");
+        var track = document.createElement("div");
+        var fill = document.createElement("span");
+        var value = document.createElement("span");
+        var metricRow = summary[metric.key];
+        var numericValue = metric.value(metricRow);
+        var width = span === 0 ? 100 : 35 + ((numericValue - minimum) / span) * 65;
+
+        row.className = "metric-row";
+        city.className = "metric-city";
+        city.textContent = summary.name;
+        track.className = "metric-track";
+        fill.className = "metric-fill";
+        fill.style.width = width + "%";
+        value.className = "metric-value";
+        value.textContent = metric.label(metricRow);
+        track.appendChild(fill);
+        row.appendChild(city);
+        row.appendChild(track);
+        row.appendChild(value);
+        chart.appendChild(row);
+      });
+
+      charts.appendChild(chart);
+    });
+
+    card.appendChild(charts);
+
+    return card;
+  }
+
   var lastRenderedWeatherList = [];
 
   function renderTabs(cityWeatherList) {
+    var detailsButton;
     tabsContainer.innerHTML = "";
 
     cityWeatherList.forEach(function (cityWeather) {
@@ -697,8 +964,12 @@
       button.type = "button";
       button.className = "city-tab";
       button.setAttribute("role", "tab");
-      button.setAttribute("aria-selected", cityWeather.cityKey === activeCityKey ? "true" : "false");
+      button.setAttribute(
+        "aria-selected",
+        activeView === "city" && cityWeather.cityKey === activeCityKey ? "true" : "false",
+      );
       button.addEventListener("click", function () {
+        activeView = "city";
         activeCityKey = cityWeather.cityKey;
         renderCityCards(cityWeatherList);
       });
@@ -719,6 +990,18 @@
       button.appendChild(content);
       tabsContainer.appendChild(button);
     });
+
+    detailsButton = document.createElement("button");
+    detailsButton.type = "button";
+    detailsButton.className = "city-tab details-tab";
+    detailsButton.setAttribute("role", "tab");
+    detailsButton.setAttribute("aria-selected", activeView === "details" ? "true" : "false");
+    detailsButton.textContent = "Details";
+    detailsButton.addEventListener("click", function () {
+      activeView = "details";
+      renderCityCards(cityWeatherList);
+    });
+    tabsContainer.appendChild(detailsButton);
   }
 
   function renderCityCards(cityWeatherList) {
@@ -740,7 +1023,9 @@
     cardsContainer.innerHTML = "";
     renderTabs(cityWeatherList);
 
-    if (selectedCity) {
+    if (activeView === "details") {
+      cardsContainer.appendChild(buildComparisonCard(cityWeatherList));
+    } else if (selectedCity) {
       cardsContainer.appendChild(buildCityCard(selectedCity));
     }
   }
