@@ -417,6 +417,10 @@ table {
   --metric-color: #0f766e;
 }
 
+.metric-wind {
+  --metric-color: #475569;
+}
+
 .metric-condition {
   grid-column: 1 / -1;
   padding: 12px 14px;

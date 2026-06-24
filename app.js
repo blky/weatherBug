@@ -572,6 +572,7 @@
         dewPoint: payload.hourly.dew_point_2m[index],
         rain: payload.hourly.rain[index],
         uvIndex: payload.hourly.uv_index[index],
+        windSpeed: windSpeed,
         wind:
           getWindDescriptor(windSpeed) +
           " " +
@@ -807,6 +808,7 @@
       var highestUv;
       var highestDewPoint;
       var highestHumidity;
+      var strongestWind;
       var conditionCounts = {};
       var dominantCondition;
 
@@ -828,6 +830,9 @@
       });
       highestHumidity = rowsForDate.reduce(function (best, row) {
         return row.humidity > best.humidity ? row : best;
+      });
+      strongestWind = rowsForDate.reduce(function (best, row) {
+        return row.windSpeed > best.windSpeed ? row : best;
       });
       rowsForDate.forEach(function (row) {
         var key = row.condition;
@@ -854,6 +859,7 @@
         highestUv: highestUv,
         highestDewPoint: highestDewPoint,
         highestHumidity: highestHumidity,
+        strongestWind: strongestWind,
         dominantCondition: dominantCondition,
       });
     });
@@ -912,6 +918,17 @@
         },
         label: function (row) {
           return row.humidity + "% at " + row.hour;
+        },
+      },
+      {
+        key: "strongestWind",
+        title: "Strongest wind",
+        className: "metric-wind",
+        value: function (row) {
+          return row.windSpeed;
+        },
+        label: function (row) {
+          return row.windSpeed.toFixed(1) + " km/h at " + row.hour;
         },
       },
     ];
