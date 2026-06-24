@@ -261,6 +261,36 @@
     }).format(date);
   }
 
+  function buildMobileDateSelect(dateKeys, selectedDateKey, currentDateKey, timezone) {
+    var wrapper = document.createElement("label");
+    var label = document.createElement("span");
+    var select = document.createElement("select");
+
+    wrapper.className = "mobile-date-picker";
+    label.className = "mobile-date-label";
+    label.textContent = "Choose forecast date";
+    select.className = "mobile-date-select";
+    select.setAttribute("aria-label", "Choose forecast date");
+
+    dateKeys.forEach(function (dateKey) {
+      var option = document.createElement("option");
+      option.value = dateKey;
+      option.textContent =
+        formatDateLabel(dateKey, timezone) + (dateKey === currentDateKey ? " - Today" : "");
+      option.selected = dateKey === selectedDateKey;
+      select.appendChild(option);
+    });
+
+    select.addEventListener("change", function () {
+      activeDateKey = select.value;
+      renderCityCards(lastRenderedWeatherList);
+    });
+
+    wrapper.appendChild(label);
+    wrapper.appendChild(select);
+    return wrapper;
+  }
+
   function renderError(message) {
     if (tabsContainer) {
       tabsContainer.innerHTML = "";
@@ -595,6 +625,7 @@
   function buildCityCard(cityWeather) {
     var card = cityCardTemplate.content.firstElementChild.cloneNode(true);
     var body = card.querySelector("tbody");
+    var dateSwitcher = card.querySelector(".date-switcher");
     var dateNav = card.querySelector(".date-nav");
     var dateLabel = card.querySelector(".date-label");
     var viewToggle = card.querySelector(".view-toggle");
@@ -619,6 +650,15 @@
       "Local time updated " + cityWeather.updatedAt;
     dateLabel.textContent = formatDateLabel(selectedDateKey, cityWeather.timezone);
     viewToggle.textContent = isFullDay ? "Show every 2 hours" : "Show 24 hours";
+    dateSwitcher.insertBefore(
+      buildMobileDateSelect(
+        cityWeather.availableDateKeys,
+        selectedDateKey,
+        currentDateKey,
+        cityWeather.timezone,
+      ),
+      dateNav,
+    );
 
     cityWeather.availableDateKeys.forEach(function (dateKey) {
       var chip = document.createElement("button");
@@ -699,6 +739,7 @@
     var dateSwitcher = document.createElement("div");
     var dateNav = document.createElement("div");
     var dateLabel = document.createElement("p");
+    var mobileDatePicker;
     var charts = document.createElement("div");
     var referenceCity = cityWeatherList[0];
     var selectedDateKey;
@@ -725,6 +766,12 @@
     dateNav.className = "date-nav";
     dateLabel.className = "date-label";
     dateLabel.textContent = formatDateLabel(selectedDateKey, referenceCity.timezone);
+    mobileDatePicker = buildMobileDateSelect(
+      referenceCity.availableDateKeys,
+      selectedDateKey,
+      referenceCity.currentDateKey,
+      referenceCity.timezone,
+    );
 
     referenceCity.availableDateKeys.forEach(function (dateKey) {
       var chip = document.createElement("button");
@@ -748,6 +795,7 @@
       dateNav.appendChild(chip);
     });
 
+    dateSwitcher.appendChild(mobileDatePicker);
     dateSwitcher.appendChild(dateNav);
     dateSwitcher.appendChild(dateLabel);
     card.appendChild(dateSwitcher);
