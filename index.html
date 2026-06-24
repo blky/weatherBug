@@ -4,19 +4,25 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Weather snapshots</title>
+    <link rel="icon" type="image/png" href="./weather-logo.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Source+Sans+3:wght@400;600&display=swap"
       rel="stylesheet"
     />
+    <link rel="preload" href="./weather-hero.png" as="image" />
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
     <main class="app-shell">
       <section class="hero">
+        <div class="hero-image" aria-hidden="true"></div>
         <p class="eyebrow">Hourly climate tracker</p>
-        <h1>Weather snapshots</h1>
+        <div class="hero-title">
+          <img class="app-logo" src="./weather-logo.png" alt="" />
+          <h1>Weather snapshots</h1>
+        </div>
         <p class="hero-copy">
           Track hourly temperature in Celsius and Fahrenheit, humidity, dew
           point, rain, and wind conditions across your selected cities.

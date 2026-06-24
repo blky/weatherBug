@@ -76,7 +76,7 @@
   var cityCardTemplate = document.querySelector("#cityCardTemplate");
   var activeCityKey = "";
   var activeDateKey = "";
-  var expandedCityKey = "";
+  var showFullDay = false;
   var hintTimer = 0;
   var latestHintQuery = "";
   var preferredCityIndex = buildPreferredCityIndex(defaultCities);
@@ -220,8 +220,8 @@
     return formatLocalHour(adjustedStamp);
   }
 
-  function getShouldShowFullDay(cityWeather) {
-    return expandedCityKey === cityWeather.cityKey;
+  function getShouldShowFullDay() {
+    return showFullDay;
   }
 
   function formatDateLabel(dateKey, timezone) {
@@ -597,7 +597,7 @@
     var viewToggle = card.querySelector(".view-toggle");
     var selectedDateKey = getSelectedDateKey(cityWeather);
     var allRows = cityWeather.rowsByDate[selectedDateKey] || [];
-    var isFullDay = getShouldShowFullDay(cityWeather);
+    var isFullDay = getShouldShowFullDay();
     var rows = isFullDay
       ? allRows
       : allRows.filter(function (row) {
@@ -640,7 +640,7 @@
     });
 
     viewToggle.addEventListener("click", function () {
-      expandedCityKey = isFullDay ? "" : cityWeather.cityKey;
+      showFullDay = !isFullDay;
       renderCityCards(lastRenderedWeatherList);
     });
 
@@ -700,10 +700,6 @@
       button.setAttribute("aria-selected", cityWeather.cityKey === activeCityKey ? "true" : "false");
       button.addEventListener("click", function () {
         activeCityKey = cityWeather.cityKey;
-        activeDateKey = cityWeather.currentDateKey;
-        if (expandedCityKey && expandedCityKey !== cityWeather.cityKey) {
-          expandedCityKey = "";
-        }
         renderCityCards(cityWeatherList);
       });
 
@@ -768,7 +764,6 @@
     if (activeCityKey === cityKey && trackedCities.length > 0) {
       activeCityKey = slugifyCity(trackedCities[0]);
       activeDateKey = "";
-      expandedCityKey = "";
     }
 
     updateCityCount();
@@ -842,7 +837,6 @@
     if (exists) {
       activeCityKey = incomingSlug;
       activeDateKey = "";
-      expandedCityKey = "";
       setFormMessage(city.name + " is already in the dashboard.");
       loadWeather();
       return;
@@ -851,7 +845,6 @@
     trackedCities = trackedCities.concat(city);
     activeCityKey = incomingSlug;
     activeDateKey = "";
-    expandedCityKey = "";
     updateCityCount();
     saveCities();
     setFormMessage(city.name + " added. Loading weather now.");
