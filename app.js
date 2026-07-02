@@ -1145,12 +1145,14 @@
     refreshButton.disabled = true;
     statusText.textContent = "Refreshing hourly forecast...";
 
-    Promise.all(
+    Promise.allSettled(
       trackedCities.map(function (city) {
         return fetchWithTimeout(createWeatherUrl(city), 12000)
           .then(function (response) {
             if (!response.ok) {
-              throw new Error("Weather request failed for " + city.name + ".");
+              throw new Error(
+                city.name + " returned " + response.status + " " + response.statusText + ".",
+              );
             }
 
             return response.json();
@@ -1160,17 +1162,37 @@
           });
       }),
     )
-      .then(function (responses) {
-        renderCityCards(responses);
-        statusText.textContent =
-          "Showing every-2-hour measurements by default, with optional 24-hour view, from yesterday through the next 14 days for " +
-          trackedCities.length +
-          " cities.";
+      .then(function (results) {
+        var successfulResponses = [];
+        var failedMessages = [];
+
+        results.forEach(function (result) {
+          if (result.status === "fulfilled") {
+            successfulResponses.push(result.value);
+          } else {
+            failedMessages.push(result.reason && result.reason.message ? result.reason.message : "Unknown error");
+          }
+        });
+
+        if (successfulResponses.length > 0) {
+          renderCityCards(successfulResponses);
+          statusText.textContent =
+            "Showing every-2-hour measurements by default, with optional 24-hour view, from yesterday through the next 14 days for " +
+            successfulResponses.length +
+            " cities" +
+            (failedMessages.length ? ". Some cities could not refresh: " + failedMessages.join(" ") : ".");
+          return;
+        }
+
+        renderError(
+          "The weather feed could not be loaded. Open-Meteo may be temporarily unreachable from this browser, or the page may be blocked by local file/network settings. Try http://localhost:8080 with the included PowerShell server, then refresh.",
+        );
+        statusText.textContent = "Unable to refresh weather right now.";
       })
       .catch(function (error) {
         console.error(error);
         renderError(
-          "The weather feed could not be loaded. If you opened this as a local file, run the included PowerShell server and open http://localhost:8080 instead.",
+          "The weather feed could not be loaded because the browser hit an unexpected error. Try refreshing, or run the included PowerShell server and open http://localhost:8080.",
         );
         statusText.textContent = "Unable to refresh weather right now.";
       })
