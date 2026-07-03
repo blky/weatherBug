@@ -396,6 +396,43 @@
     return "https://api.open-meteo.com/v1/forecast?" + params.toString();
   }
 
+  function getHourlySeries(payload, fieldName) {
+    return payload && payload.hourly && Array.isArray(payload.hourly[fieldName])
+      ? payload.hourly[fieldName]
+      : null;
+  }
+
+  function isFiniteNumber(value) {
+    return typeof value === "number" && Number.isFinite(value);
+  }
+
+  function getOptionalNumber(series, index) {
+    var value = series ? series[index] : null;
+    return isFiniteNumber(value) ? value : null;
+  }
+
+  function formatOptionalNumber(value, suffix) {
+    return isFiniteNumber(value) ? value.toFixed(1) + suffix : "Unavailable";
+  }
+
+  function formatOptionalPercent(value) {
+    return isFiniteNumber(value) ? value + "%" : "Unavailable";
+  }
+
+  function getBestMetricRow(rows, valueGetter, compare) {
+    var rowsWithValue = rows.filter(function (row) {
+      return isFiniteNumber(valueGetter(row));
+    });
+
+    if (rowsWithValue.length === 0) {
+      return null;
+    }
+
+    return rowsWithValue.reduce(function (best, row) {
+      return compare(valueGetter(row), valueGetter(best)) ? row : best;
+    });
+  }
+
   function createGeocodingUrl(query) {
     var parsedQuery = parseCityQuery(query);
     var params = new URLSearchParams({
@@ -553,36 +590,62 @@
     var groupedRows = {};
     var orderedDateKeys = [];
     var currentDateKey = getCurrentCityDateKey(city.timezone);
-    var rows = payload.hourly.time.map(function (isoTime, index) {
-      var temperatureC = payload.hourly.temperature_2m[index];
-      var windSpeed = payload.hourly.wind_speed_10m[index];
-      var windDirection = payload.hourly.wind_direction_10m[index];
-      var windDirectionLabel = getCompassDirection(windDirection);
-      var weatherCode = payload.hourly.weather_code[index];
-      var dateKey = isoTime.slice(0, 10);
+    var times = getHourlySeries(payload, "time");
+    var temperatures = getHourlySeries(payload, "temperature_2m");
+    var humidities = getHourlySeries(payload, "relative_humidity_2m");
+    var dewPoints = getHourlySeries(payload, "dew_point_2m");
+    var rainValues = getHourlySeries(payload, "rain");
+    var uvIndexes = getHourlySeries(payload, "uv_index");
+    var windSpeeds = getHourlySeries(payload, "wind_speed_10m");
+    var windDirections = getHourlySeries(payload, "wind_direction_10m");
+    var weatherCodes = getHourlySeries(payload, "weather_code");
+    var rows;
+
+    if (!times) {
+      throw new Error(city.name + " returned an incomplete weather response.");
+    }
+
+    rows = times.reduce(function (validRows, isoTime, index) {
+      var temperatureC = getOptionalNumber(temperatures, index);
+      var humidity = getOptionalNumber(humidities, index);
+      var dewPoint = getOptionalNumber(dewPoints, index);
+      var rain = getOptionalNumber(rainValues, index);
+      var uvIndex = getOptionalNumber(uvIndexes, index);
+      var windSpeed = getOptionalNumber(windSpeeds, index);
+      var windDirection = getOptionalNumber(windDirections, index);
+      var hasWindData = isFiniteNumber(windSpeed) && isFiniteNumber(windDirection);
+      var windDirectionLabel = hasWindData ? getCompassDirection(windDirection) : "";
+      var weatherCode = getOptionalNumber(weatherCodes, index);
+      var dateKey;
       var row;
 
+      if (typeof isoTime !== "string") {
+        return validRows;
+      }
+
+      dateKey = isoTime.slice(0, 10);
       row = {
         dateKey: dateKey,
         isoTime: isoTime,
         hour: formatLocalHour(isoTime),
         temperatureC: temperatureC,
-        temperatureF: celsiusToFahrenheit(temperatureC),
-        humidity: payload.hourly.relative_humidity_2m[index],
-        dewPoint: payload.hourly.dew_point_2m[index],
-        rain: payload.hourly.rain[index],
-        uvIndex: payload.hourly.uv_index[index],
-        windSpeed: windSpeed,
-        wind:
-          getWindDescriptor(windSpeed) +
-          " " +
-          windSpeed.toFixed(1) +
-          " km/h " +
-          getDirectionArrow(windDirectionLabel) +
-          " " +
-          windDirectionLabel,
-        conditionIcon: getWeatherIcon(weatherCode),
-        condition: weatherCodeMap[weatherCode] || "Unknown",
+        temperatureF: isFiniteNumber(temperatureC) ? celsiusToFahrenheit(temperatureC) : null,
+        humidity: humidity,
+        dewPoint: dewPoint,
+        rain: rain,
+        uvIndex: uvIndex,
+        windSpeed: hasWindData ? windSpeed : null,
+        wind: hasWindData
+          ? getWindDescriptor(windSpeed) +
+            " " +
+            windSpeed.toFixed(1) +
+            " km/h " +
+            getDirectionArrow(windDirectionLabel) +
+            " " +
+            windDirectionLabel
+          : "Unavailable",
+        conditionIcon: isFiniteNumber(weatherCode) ? getWeatherIcon(weatherCode) : "",
+        condition: isFiniteNumber(weatherCode) ? weatherCodeMap[weatherCode] || "Unknown" : "Unavailable",
       };
 
       if (!groupedRows[dateKey]) {
@@ -592,8 +655,13 @@
 
       groupedRows[dateKey].push(row);
 
-      return row;
-    });
+      validRows.push(row);
+      return validRows;
+    }, []);
+
+    if (rows.length === 0) {
+      throw new Error(city.name + " returned no usable hourly weather rows.");
+    }
 
     return {
       name: city.name,
@@ -698,22 +766,22 @@
         row.hour +
         "</td>" +
         "<td>" +
-        row.temperatureC.toFixed(1) +
-        " C</td>" +
+        formatOptionalNumber(row.temperatureC, " C") +
+        "</td>" +
         "<td>" +
-        row.temperatureF.toFixed(1) +
-        " F</td>" +
+        formatOptionalNumber(row.temperatureF, " F") +
+        "</td>" +
         "<td>" +
-        row.humidity +
-        "%</td>" +
+        formatOptionalPercent(row.humidity) +
+        "</td>" +
         "<td>" +
-        row.dewPoint.toFixed(1) +
-        " C</td>" +
+        formatOptionalNumber(row.dewPoint, " C") +
+        "</td>" +
         "<td>" +
-        row.rain.toFixed(1) +
-        " mm</td>" +
+        formatOptionalNumber(row.rain, " mm") +
+        "</td>" +
         "<td>" +
-        row.uvIndex.toFixed(1) +
+        formatOptionalNumber(row.uvIndex, "") +
         "</td>" +
         "<td>" +
         '<span class="condition-cell"><span class="condition-icon" aria-hidden="true">' +
@@ -816,24 +884,60 @@
         return;
       }
 
-      highestTemperature = rowsForDate.reduce(function (best, row) {
-        return row.temperatureC > best.temperatureC ? row : best;
-      });
-      lowestTemperature = rowsForDate.reduce(function (best, row) {
-        return row.temperatureC < best.temperatureC ? row : best;
-      });
-      highestUv = rowsForDate.reduce(function (best, row) {
-        return row.uvIndex > best.uvIndex ? row : best;
-      });
-      highestDewPoint = rowsForDate.reduce(function (best, row) {
-        return row.dewPoint > best.dewPoint ? row : best;
-      });
-      highestHumidity = rowsForDate.reduce(function (best, row) {
-        return row.humidity > best.humidity ? row : best;
-      });
-      strongestWind = rowsForDate.reduce(function (best, row) {
-        return row.windSpeed > best.windSpeed ? row : best;
-      });
+      highestTemperature = getBestMetricRow(
+        rowsForDate,
+        function (row) {
+          return row.temperatureC;
+        },
+        function (value, bestValue) {
+          return value > bestValue;
+        },
+      );
+      lowestTemperature = getBestMetricRow(
+        rowsForDate,
+        function (row) {
+          return row.temperatureC;
+        },
+        function (value, bestValue) {
+          return value < bestValue;
+        },
+      );
+      highestUv = getBestMetricRow(
+        rowsForDate,
+        function (row) {
+          return row.uvIndex;
+        },
+        function (value, bestValue) {
+          return value > bestValue;
+        },
+      );
+      highestDewPoint = getBestMetricRow(
+        rowsForDate,
+        function (row) {
+          return row.dewPoint;
+        },
+        function (value, bestValue) {
+          return value > bestValue;
+        },
+      );
+      highestHumidity = getBestMetricRow(
+        rowsForDate,
+        function (row) {
+          return row.humidity;
+        },
+        function (value, bestValue) {
+          return value > bestValue;
+        },
+      );
+      strongestWind = getBestMetricRow(
+        rowsForDate,
+        function (row) {
+          return row.windSpeed;
+        },
+        function (value, bestValue) {
+          return value > bestValue;
+        },
+      );
       rowsForDate.forEach(function (row) {
         var key = row.condition;
 
@@ -971,18 +1075,30 @@
     metrics.forEach(function (metric) {
       var chart = document.createElement("section");
       var chartTitle = document.createElement("h3");
-      var values = citySummaries.map(function (summary) {
+      var chartSummaries = citySummaries.filter(function (summary) {
+        return summary[metric.key];
+      });
+      var values;
+      var minimum;
+      var maximum;
+      var span;
+
+      if (chartSummaries.length === 0) {
+        return;
+      }
+
+      values = chartSummaries.map(function (summary) {
         return metric.value(summary[metric.key]);
       });
-      var minimum = Math.min.apply(null, values);
-      var maximum = Math.max.apply(null, values);
-      var span = maximum - minimum;
+      minimum = Math.min.apply(null, values);
+      maximum = Math.max.apply(null, values);
+      span = maximum - minimum;
 
       chart.className = "metric-chart " + metric.className;
       chartTitle.textContent = metric.title;
       chart.appendChild(chartTitle);
 
-      citySummaries.forEach(function (summary) {
+      chartSummaries.forEach(function (summary) {
         var row = document.createElement("div");
         var city = document.createElement("strong");
         var track = document.createElement("div");
