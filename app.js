@@ -1353,6 +1353,40 @@
       });
   }
 
+  function buildCityWeatherList(cities, results) {
+    var resultsByCityKey = {};
+
+    results.forEach(function (result) {
+      var cityKey;
+
+      if (result.status === "fulfilled") {
+        resultsByCityKey[result.value.cityKey] = result;
+        return;
+      }
+
+      if (result.city) {
+        cityKey = slugifyCity(result.city);
+        resultsByCityKey[cityKey] = result;
+      }
+    });
+
+    return cities.map(function (city) {
+      var cityKey = slugifyCity(city);
+      var result = resultsByCityKey[cityKey];
+
+      if (result && result.status === "fulfilled") {
+        return result.value;
+      }
+
+      return createUnavailableCityData(
+        city,
+        result && result.reason && result.reason.message
+          ? result.reason.message
+          : "Weather details are unavailable.",
+      );
+    });
+  }
+
   function loadWeather(options) {
     var addedCityName = options && options.addedCityName;
     var addedCityKey = options && options.addedCityKey;
@@ -1362,7 +1396,7 @@
 
     fetchWeatherForCities(trackedCities)
       .then(function (results) {
-        var cityWeatherResponses = [];
+        var cityWeatherResponses = buildCityWeatherList(trackedCities, results);
         var failedMessages = [];
         var addedCityFailure;
         var addedCityLoaded = false;
@@ -1370,7 +1404,6 @@
 
         results.forEach(function (result) {
           if (result.status === "fulfilled") {
-            cityWeatherResponses.push(result.value);
             loadedCityCount += 1;
             if (result.value.cityKey === addedCityKey) {
               addedCityLoaded = true;
@@ -1378,14 +1411,6 @@
           } else {
             if (result.reason && result.reason.cityKey === addedCityKey) {
               addedCityFailure = result.reason;
-            }
-            if (result.city) {
-              cityWeatherResponses.push(
-                createUnavailableCityData(
-                  result.city,
-                  result.reason && result.reason.message ? result.reason.message : "Weather details are unavailable.",
-                ),
-              );
             }
             failedMessages.push(result.reason && result.reason.message ? result.reason.message : "Unknown error");
           }
