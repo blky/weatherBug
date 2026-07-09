@@ -676,6 +676,26 @@
     };
   }
 
+  function createUnavailableCityData(city, message) {
+    var currentDateKey = getCurrentCityDateKey(city.timezone);
+    var rowsByDate = {};
+
+    rowsByDate[currentDateKey] = [];
+
+    return {
+      name: city.name,
+      region: city.region,
+      updatedAt: "unavailable",
+      timezone: city.timezone,
+      currentDateKey: currentDateKey,
+      availableDateKeys: [currentDateKey],
+      rowsByDate: rowsByDate,
+      cityKey: slugifyCity(city),
+      condition: "Unavailable",
+      unavailableMessage: message,
+    };
+  }
+
   function getSelectedDateKey(cityWeather) {
     if (
       activeDateKey &&
@@ -716,7 +736,9 @@
     card.querySelector(".city-name").textContent = cityWeather.name;
     card.querySelector(".city-badge").textContent = summaryRow ? summaryRow.condition : cityWeather.condition;
     card.querySelector(".updated-time").textContent =
-      "Local time updated " + cityWeather.updatedAt;
+      cityWeather.updatedAt === "unavailable"
+        ? "Weather details unavailable"
+        : "Local time updated " + cityWeather.updatedAt;
     dateLabel.textContent = formatDateLabel(selectedDateKey, cityWeather.timezone);
     viewToggle.textContent = isFullDay ? "Show every 2 hours" : "Show 24 hours";
     dateSwitcher.insertBefore(
@@ -755,6 +777,15 @@
       showFullDay = !isFullDay;
       renderCityCards(lastRenderedWeatherList);
     });
+
+    if (rows.length === 0) {
+      var unavailableRow = document.createElement("tr");
+      unavailableRow.innerHTML =
+        '<td colspan="9">' +
+        (cityWeather.unavailableMessage || "Weather details are unavailable. Try refreshing shortly.") +
+        "</td>";
+      body.appendChild(unavailableRow);
+    }
 
     rows.forEach(function (row) {
       var tr = document.createElement("tr");
@@ -992,14 +1023,14 @@
         },
       },
       {
-        key: "highestUv",
-        title: "Highest UV index",
-        className: "metric-uv",
+        key: "highestHumidity",
+        title: "Highest humidity",
+        className: "metric-humidity",
         value: function (row) {
-          return row.uvIndex;
+          return row.humidity;
         },
         label: function (row) {
-          return row.uvIndex.toFixed(1) + " at " + row.hour;
+          return row.humidity + "% at " + row.hour;
         },
       },
       {
@@ -1014,14 +1045,14 @@
         },
       },
       {
-        key: "highestHumidity",
-        title: "Highest humidity",
-        className: "metric-humidity",
+        key: "highestUv",
+        title: "Highest UV index",
+        className: "metric-uv",
         value: function (row) {
-          return row.humidity;
+          return row.uvIndex;
         },
         label: function (row) {
-          return row.humidity + "% at " + row.hour;
+          return row.uvIndex.toFixed(1) + " at " + row.hour;
         },
       },
       {
@@ -1257,44 +1288,121 @@
     });
   }
 
-  function loadWeather() {
+  function createWeatherFetchError(city, response) {
+    var message;
+    var error;
+
+    if (response.status === 429) {
+      message =
+        city.name +
+        " is saved, but the weather service is rate limiting requests. Try Refresh weather again in a minute.";
+    } else if (response.status >= 500) {
+      message =
+        city.name +
+        " is saved, but the weather service is temporarily unavailable. Try refreshing again shortly.";
+    } else {
+      message = city.name + " returned " + response.status + " " + response.statusText + ".";
+    }
+
+    error = new Error(message);
+    error.cityName = city.name;
+    error.cityKey = slugifyCity(city);
+    error.status = response.status;
+    return error;
+  }
+
+  function fetchCityWeather(city) {
+    return fetchWithTimeout(createWeatherUrl(city), 12000)
+      .then(function (response) {
+        if (!response.ok) {
+          throw createWeatherFetchError(city, response);
+        }
+
+        return response.json();
+      })
+      .then(function (payload) {
+        return normalizeCityData(city, payload);
+      });
+  }
+
+  function fetchWeatherForCities(cities) {
+    var results = [];
+
+    return cities
+      .reduce(function (chain, city) {
+        return chain.then(function () {
+          return fetchCityWeather(city).then(
+            function (value) {
+              results.push({
+                status: "fulfilled",
+                value: value,
+              });
+            },
+            function (reason) {
+              results.push({
+                status: "rejected",
+                city: city,
+                reason: reason,
+              });
+            },
+          );
+        });
+      }, Promise.resolve())
+      .then(function () {
+        return results;
+      });
+  }
+
+  function loadWeather(options) {
+    var addedCityName = options && options.addedCityName;
+    var addedCityKey = options && options.addedCityKey;
+
     refreshButton.disabled = true;
     statusText.textContent = "Refreshing hourly forecast...";
 
-    Promise.allSettled(
-      trackedCities.map(function (city) {
-        return fetchWithTimeout(createWeatherUrl(city), 12000)
-          .then(function (response) {
-            if (!response.ok) {
-              throw new Error(
-                city.name + " returned " + response.status + " " + response.statusText + ".",
-              );
-            }
-
-            return response.json();
-          })
-          .then(function (payload) {
-            return normalizeCityData(city, payload);
-          });
-      }),
-    )
+    fetchWeatherForCities(trackedCities)
       .then(function (results) {
-        var successfulResponses = [];
+        var cityWeatherResponses = [];
         var failedMessages = [];
+        var addedCityFailure;
+        var addedCityLoaded = false;
+        var loadedCityCount = 0;
 
         results.forEach(function (result) {
           if (result.status === "fulfilled") {
-            successfulResponses.push(result.value);
+            cityWeatherResponses.push(result.value);
+            loadedCityCount += 1;
+            if (result.value.cityKey === addedCityKey) {
+              addedCityLoaded = true;
+            }
           } else {
+            if (result.reason && result.reason.cityKey === addedCityKey) {
+              addedCityFailure = result.reason;
+            }
+            if (result.city) {
+              cityWeatherResponses.push(
+                createUnavailableCityData(
+                  result.city,
+                  result.reason && result.reason.message ? result.reason.message : "Weather details are unavailable.",
+                ),
+              );
+            }
             failedMessages.push(result.reason && result.reason.message ? result.reason.message : "Unknown error");
           }
         });
 
-        if (successfulResponses.length > 0) {
-          renderCityCards(successfulResponses);
+        if (cityWeatherResponses.length > 0) {
+          renderCityCards(cityWeatherResponses);
+          if (addedCityLoaded) {
+            setFormMessage(addedCityName + " added. Weather loaded.");
+          } else if (addedCityFailure) {
+            setFormMessage(addedCityFailure.message);
+          }
           statusText.textContent =
-            "Showing every-2-hour measurements by default, with optional 24-hour view, from yesterday through the next 14 days for " +
-            successfulResponses.length +
+            "Showing available measurements by default, with optional 24-hour view, from yesterday through the next 14 days for " +
+            loadedCityCount +
+            " of " +
+            cityWeatherResponses.length +
             " cities" +
             (failedMessages.length ? ". Some cities could not refresh: " + failedMessages.join(" ") : ".");
           return;
@@ -1303,6 +1411,9 @@
         renderError(
           "The weather feed could not be loaded. Open-Meteo may be temporarily unreachable from this browser, or the page may be blocked by local file/network settings. Try http://localhost:8080 with the included PowerShell server, then refresh.",
         );
+        if (addedCityFailure) {
+          setFormMessage(addedCityFailure.message);
+        }
         statusText.textContent = "Unable to refresh weather right now.";
       })
       .catch(function (error) {
@@ -1337,7 +1448,10 @@
     updateCityCount();
     saveCities();
     setFormMessage(city.name + " added. Loading weather now.");
-    loadWeather();
+    loadWeather({
+      addedCityName: city.name,
+      addedCityKey: incomingSlug,
+    });
   }
 
   function resolveCity(query) {
